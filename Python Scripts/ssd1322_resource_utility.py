@@ -46,6 +46,7 @@ def read_bitmap(filename):
     # Read image and scale grayscale values from 8bit to 4bit
     img = mpimg.imread(filename) // 16
     # Unpack image properties
+    
     rows, columns = img.shape
 
     bitmap_array = img.tolist()
@@ -113,7 +114,7 @@ def format_bitmap(bitmap):
     size = len(bitmap) - 1
     while index < size:
         # Merge two bytes(pixels) into one
-        output.append((bitmap[index] << 4) + bitmap[index + 1])
+        output.append(int((int(bitmap[index]) << 4) + bitmap[index + 1]))
         # move on to the next two bytes
         index += 2
     # Representing data in string format makes for easier code generation
@@ -191,8 +192,8 @@ def bitmap_to_c(bitmaps, filename="resources"):
             "/**\n"
             " * Section: Included Files\n"
             " */\n\n"
-            "#include <stdint.h>\n"
-            "#include \"ssd1322.h\"\n\n")
+            "//#include <stdint.h>\n"
+            "//#include \"ssd1322.h\"\n\n")
     
         for bmp in bitmap_table:
             f.write("// Bitmap Structure\n"
@@ -210,7 +211,9 @@ def bitmap_to_c(bitmaps, filename="resources"):
                 "/**\n"
                 " * Section: Included Files\n"
                 " */\n\n"
-                "#include \"ssd1322.h\"\n\n"
+                "//#include \"ssd1322.h\"\n\n"
+                "#include \"Font.h\"\n\n"
+                
                 "/**\n"
                 " * Section: Module Definitions\n"
                 " */\n\n")
@@ -300,9 +303,14 @@ def font_to_array(filename, size):
     """
     fnt = Font(filename, size)
     font_table = {}
+    latin1= ''
+    for i in  range(161,256):
+        latin1= latin1 + chr(i)
+    #print (latin1)
     
     # Prepare characters for rendering
-    elements = ' ' + string.ascii_letters +  string.digits + string.punctuation
+    elements = ' ' + string.ascii_letters +  string.digits + \
+        string.punctuation + latin1
     elements.replace('//', '/')
     keys = [i for i in elements]
     keys.sort()
@@ -377,12 +385,13 @@ def font_to_c(filename, size):
     
     Returns: None
     """
+    # Appenf font size to file and data names
+    sizestr= "_%d"%size
     # Remove file extension and leading digits
     file = filename.split('.')[0].lstrip(string.digits)
     # Replace punctuation characters with underscores
     t = {ord(i) : '_' for i in string.punctuation}
-    file = file.translate(t)
-    
+    file = file.translate(t) + sizestr
     # Get font data
     font_table, font_height, font_descent = font_to_array(filename, size)  
     
@@ -398,7 +407,7 @@ def font_to_c(filename, size):
                 "/**\n"
                 " * Section: Included Files\n"
                 " */\n\n"
-                "#include \"ssd1322.h\"\n\n"
+                "//#include \"ssd1322.h\"\n\n"
                 "// Font Structure\n"
                 "extern const font_t " + file + ";\n")
         
@@ -414,7 +423,9 @@ def font_to_c(filename, size):
                 "/**\n"
                 " * Section: Included Files\n"
                 " */\n\n"
-                "#include \"ssd1322.h\"\n\n"
+                "#include <stdint.h>\n"
+                "//#include \"ssd1322.h\"\n\n"
+                "#include \"Font.h\"\n\n"
                 "/**\n"
                 " * Section: Module Definitions\n"
                 " */\n\n"
@@ -431,7 +442,7 @@ def font_to_c(filename, size):
         keys = list(font_table.keys())
         for i in keys:
             # Convert font parameters to hexadecimal strings
-            location   = "0x%04X" % font_table[i]['Location']
+            location   = "0x%06X" % font_table[i]['Location']
             width      = "0x%02X" % font_table[i]['Width']
             height     = "0x%02X" % font_table[i]['Height']
             baseline   = "0x%02X" % font_table[i]['Baseline']
@@ -483,10 +494,19 @@ def font_to_c(filename, size):
                 "    FONT_HEIGHT,\n"
                 "    FONT_DESCENT\n"
                 "};\n")
-            
+
+from wanted import *
 if __name__ == "__main__":
     # Ensure that the .bmp and .ttf files you're trying to generate code for
     # are in the working directory.
-    font_to_c("Lato-Regular.ttf", 27)
-    bitmap_to_c(["ok.bmp", "CN.bmp"])
+    size= 27
+    for e in w:
+        font_to_c(e[0], e[1])
+    #for e in i:
+    #    print (e)
+    bitmap_to_c(i)
+        
+
+        
+    
                 
